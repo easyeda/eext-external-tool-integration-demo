@@ -1,0 +1,66 @@
+{
+	"name": "external-tool-integration-demo",
+	"uuid": "a1i8t4u1l2a6t3i7o9n1f3i6l8e0p4u9",
+	"displayName": "外部工具集成演示示例",
+	"description": "通用的文件推送工具，支持ODB++和网表文件导出到第三方仿真软件",
+	"version": "1.0.0",
+	"publisher": "",
+	"engines": {
+		"eda": "^2.3.0"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "extension-store",
+		"url": ""
+	},
+	"categories": "PCB",
+	"keywords": ["Simulation", "ODB++", "Netlist", "Export", "File Transfer"],
+	"images": {
+		"logo": "./images/logo.png"
+	},
+	"homepage": "https://pro.lceda.cn",
+	"bugs": "https://lceda.cn/page/feedback?originPage=other",
+	"activationEvents": {
+		"onEditorPcb": true
+	},
+	"entry": "./dist/index",
+	"dependentExtensions": {},
+	"headerMenus": {
+		"sch": [
+			{
+				"id": "SimulationFilePusherSch",
+				"title": "仿真",
+				"menuItems": [
+					{
+						"id": "Export Netlist",
+						"title": "推送网表文件...",
+						"registerFn": "exportNetlistFile"
+					},
+					{
+						"id": "About",
+						"title": "关于...",
+						"registerFn": "about"
+					}
+				]
+			}
+		],
+		"pcb": [
+			{
+				"id": "SimulationFilePusherPcb",
+				"title": "仿真",
+				"menuItems": [
+					{
+						"id": "Export ODB++",
+						"title": "推送ODB++文件...",
+						"registerFn": "exportODBFile"
+					},
+					{
+						"id": "About",
+						"title": "关于...",
+						"registerFn": "about"
+					}
+				]
+			}
+		]
+	}
+}
