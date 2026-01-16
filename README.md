@@ -41,22 +41,19 @@ npm run build
 
 ### 1. 核心架构
 
-扩展基于 `FileManager` 类构建，提供以下核心功能：
+扩展基于 `SimulationFileManager` 类构建，提供以下核心功能：
 
 ```typescript
-class ExternalFileManager {   
+class SimulationFileManager {   
 	// 配置管理
-	updateConfig(config: SimulationConfig): void;
+	updateConfig(newConfig: Partial<Config>): void;
 
-	// 仿真网表文件导出
-	exportNetlistFile(): Promise<void>;
-
-	// 外部工具客户端检测
-	checkClientStatus(): Promise<boolean>;
-
-	// 文件传输
-	sendFileData(data: any, type: string): Promise<void>;
+	// 导出文件到仿真工具
+	exportToSimulationTool(fileType: 'odb' | 'netlist'): Promise<void>;
 }
+
+// 全局实例
+export const simulationFileManager = new SimulationFileManager();
 ```
 
 ### 2. 自定义外部工具集成
@@ -85,7 +82,7 @@ interface ExternalToolAPI {
 
 ```typescript
 // 基础配置
-ExternalFileManager.updateConfig({   
+simulationFileManager.updateConfig({   
 	port: 9090, // 仿真工具HTTP服务端口
 	host: '192.168.1.100', // 仿真工具主机地址
 	scheme: 'your-tool://', // URL Scheme用于启动应用
@@ -93,13 +90,13 @@ ExternalFileManager.updateConfig({
 });
 
 // 高级配置
-ExternalFileManager.updateConfig({
+simulationFileManager.updateConfig({
 	port: 8080,
 	host: 'localhost',
 	scheme: 'your-tool://',
 	timeout: 20000,
-	retryCount: 3, // 重试次数
-	retryDelay: 2000, // 重试间隔(ms)
+	checkInterval: 2000, // 检测间隔(ms)
+	focusDelay: 3000, // 焦点检测延迟(ms)
 });
 ```
 
@@ -122,18 +119,13 @@ ExternalFileManager.updateConfig({
 
 2. **文件上传端点** `POST /api/upload`
 
-    ```json
-    // 请求格式
-    {
-      "fileType": "netlist",
-      "fileName": "design.odb",
-      "fileData": "base64编码的文件数据",
-      "metadata": {
-        "projectName": "项目名称",
-        "timestamp": "2024-01-01T00:00:00Z"
-      }
-    }
+    使用 `multipart/form-data` 格式上传：
 
+    - `file`: 文件内容 (Binary)
+    - `type`: 文件类型 ("odb" 或 "netlist")
+    - `timestamp`: 时间戳
+
+    ```json
     // 响应格式
     {
       "success": true,
@@ -157,3 +149,29 @@ ExternalFileManager.updateConfig({
 ```
 your-tool://open?project=<project-id>
 ```
+
+## 涉及API
+
+本项目主要使用了以下嘉立创EDA扩展API：
+
+### 界面交互
+- `eda.sys_I18n.text`: 获取多语言文本
+- `eda.sys_Dialog.showInformationMessage`: 显示信息提示框
+- `eda.sys_Dialog.showConfirmationMessage`: 显示确认对话框
+- `eda.sys_LoadingAndProgressBar.showProgressBar`: 控制进度条显示与隐藏
+- `eda.sys_Message.showToastMessage`: 显示Toast轻提示消息
+
+### 系统功能
+- `eda.sys_ClientUrl.request`: 发起跨域HTTP请求（用于与外部工具通信）
+- `eda.sys_Window.open`: 打开URL链接或唤起外部应用（URL Scheme）
+- `eda.sys_Window.addEventListener`: 监听窗口焦点变化事件
+
+### 定时器管理
+- `eda.sys_Timer.setTimeoutTimer`: 设置延时定时器
+- `eda.sys_Timer.setIntervalTimer`: 设置循环定时器
+- `eda.sys_Timer.clearIntervalTimer`: 清除循环定时器
+- `eda.sys_Timer.clearTimeoutTimer`: 清除延时定时器
+
+### 数据获取
+- `eda.pcb_ManufactureData.getOpenDatabaseDoublePlusFile`: 获取PCB ODB++制造文件数据
+- `eda.sch_ManufactureData.getNetlistFile`: 获取原理图网表文件数据
