@@ -1,6 +1,6 @@
-# 仿真文件推送工具扩展
+# 外部工具集成扩展示例
 
-这是一个基于嘉立创EDA的通用仿真文件推送扩展，为开发者提供了一个可扩展的框架，用于将设计文件导出并推送到第三方工具进行使用或查看等。
+这是一个基于嘉立创EDA的通用仿真文件推送扩展示例，为开发者提供了一个可扩展的框架，用于将设计文件导出并推送到第三方工具进行使用或查看等。
 
 场景应用：  
 1、把仿真网表推送到第三方仿真工具   
@@ -19,8 +19,6 @@
 ## 扩展特性
 
 - **通用框架设计**：提供标准化的文件导出和传输接口，便于集成各种仿真工具
-- **ODB++文件导出**：完整的PCB制造数据导出，包含层信息、钻孔数据、元件位置等
-- **原理图网表导出**：从原理图提取电路连接信息，包含元件列表、网络关系、引脚对应等
 - **智能客户端检测**：自动检测仿真工具运行状态，支持URL Scheme启动机制
 - **可靠传输机制**：基于HTTP API的文件传输，具备重试机制和超时保护
 - **灵活配置系统**：支持动态配置仿真工具的连接参数和传输方式
@@ -43,18 +41,17 @@ npm run build
 
 ### 1. 核心架构
 
-扩展基于 `SimulationFileManager` 类构建，提供以下核心功能：
+扩展基于 `FileManager` 类构建，提供以下核心功能：
 
 ```typescript
-class SimulationFileManager {
+class ExternalFileManager {   
 	// 配置管理
 	updateConfig(config: SimulationConfig): void;
 
-	// 文件导出
-	exportODBFile(): Promise<void>;
+	// 仿真网表文件导出
 	exportNetlistFile(): Promise<void>;
 
-	// 客户端检测
+	// 外部工具客户端检测
 	checkClientStatus(): Promise<boolean>;
 
 	// 文件传输
@@ -62,19 +59,19 @@ class SimulationFileManager {
 }
 ```
 
-### 2. 自定义仿真工具集成
+### 2. 自定义外部工具集成
 
-要集成新的仿真工具，需要实现以下接口：
+要集成外部工具，需要实现以下接口：
 
 ```typescript
-interface SimulationToolAPI {
+interface ExternalToolAPI {
 	// 状态检测端点
 	testEndpoint: string; // 默认: /api/test
 
 	// 文件上传端点
 	uploadEndpoint: string; // 默认: /api/upload
 
-	// URL Scheme (用于启动应用)
+	// URL Scheme (用于启动外部工具这个应用)
 	urlScheme: string; // 例如: "your-tool://"
 
 	// 连接配置
@@ -88,29 +85,29 @@ interface SimulationToolAPI {
 
 ```typescript
 // 基础配置
-simulationFileManager.updateConfig({
+ExternalFileManager.updateConfig({   
 	port: 9090, // 仿真工具HTTP服务端口
 	host: '192.168.1.100', // 仿真工具主机地址
-	scheme: 'my-simulation-tool://', // URL Scheme用于启动应用
+	scheme: 'your-tool://', // URL Scheme用于启动应用
 	timeout: 15000, // 传输超时时间(ms)
 });
 
 // 高级配置
-simulationFileManager.updateConfig({
+ExternalFileManager.updateConfig({
 	port: 8080,
 	host: 'localhost',
-	scheme: 'advanced-sim://',
+	scheme: 'your-tool://',
 	timeout: 20000,
 	retryCount: 3, // 重试次数
 	retryDelay: 2000, // 重试间隔(ms)
 });
 ```
 
-## 仿真工具集成要求
+## 外部工具集成要求
 
 ### HTTP API规范
 
-仿真工具需要提供以下HTTP端点：
+外部工具需要提供以下HTTP端点; 你也可以使用websocket进行通讯。可以外部工具本身或其他工具提供http服务并进行数据转发。
 
 1. **状态检测端点** `GET /api/test`
 
@@ -128,7 +125,7 @@ simulationFileManager.updateConfig({
     ```json
     // 请求格式
     {
-      "fileType": "odb" | "netlist",
+      "fileType": "netlist",
       "fileName": "design.odb",
       "fileData": "base64编码的文件数据",
       "metadata": {
@@ -144,10 +141,18 @@ simulationFileManager.updateConfig({
       "fileId": "unique-file-id"
     }
     ```
+ 3. **API需要允许跨域请求**
+
+  ```json
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  ```
 
 ### URL Scheme支持
 
-仿真工具应注册自定义URL Scheme以支持自动启动：
+如果你希望插件可以唤起外部工具，比如浏览器启动百度网盘，迅雷等工具，你的外部工具应注册[自定义URL Scheme](https://zhuanlan.zhihu.com/p/648300882)以支持自动启动：
 
 ```
 your-tool://open?project=<project-id>
