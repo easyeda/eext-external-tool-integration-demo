@@ -1,10 +1,10 @@
 # 外部工具集成扩展示例
 
-这是一个基于嘉立创EDA的通用仿真文件推送扩展示例，为开发者提供了一个可扩展的框架，用于将设计文件导出并推送到第三方工具进行使用或查看等。
+这是一个基于嘉立创EDA的通用文件推送扩展示例，为开发者提供了一个可扩展的框架，用于将设计文件导出并推送到第三方工具进行使用或查看等。
 
 场景应用：  
 1、把仿真网表推送到第三方仿真工具   
-2、把PCB制造文件推送到第三方DFM/CAM/SI/PI/EMI仿真等工具  
+2、把PCB制造文件推送到第三方DFM/CAM/SI/PI/EMI等工具  
 3、把3D文件推到第三方三维设计工具  
 4、把3D文件推送到第三方渲染工具  
 5、把网表推送到第三方EDA工具  
@@ -41,20 +41,21 @@ npm run build
 
 ### 1. 核心架构
 
-扩展基于 `SimulationFileManager` 类构建，提供以下核心功能：
+扩展基于 `FileManager` 类构建，提供以下核心功能：
 
 ```typescript
-class SimulationFileManager {   
+class FileManager {   
 	// 配置管理
 	updateConfig(newConfig: Partial<Config>): void;
 
-	// 导出文件到仿真工具
-	exportToSimulationTool(fileType: 'odb' | 'netlist'): Promise<void>;
+	// 导出文件到外部工具
+	exportToExternalTool(fileType: 'odb' | 'netlist'): Promise<void>;
 }
 
 // 全局实例
-export const simulationFileManager = new SimulationFileManager();
+export const fileManager = new FileManager();
 ```
+
 
 ### 2. 自定义外部工具集成
 
@@ -82,15 +83,15 @@ interface ExternalToolAPI {
 
 ```typescript
 // 基础配置
-simulationFileManager.updateConfig({   
-	port: 9090, // 仿真工具HTTP服务端口
-	host: '192.168.1.100', // 仿真工具主机地址
+fileManager.updateConfig({   
+	port: 9090, // 外部工具HTTP服务端口
+	host: '192.168.1.100', // 外部工具主机地址
 	scheme: 'your-tool://', // URL Scheme用于启动应用
 	timeout: 15000, // 传输超时时间(ms)
 });
 
 // 高级配置
-simulationFileManager.updateConfig({
+fileManager.updateConfig({
 	port: 8080,
 	host: 'localhost',
 	scheme: 'your-tool://',
@@ -99,6 +100,17 @@ simulationFileManager.updateConfig({
 	focusDelay: 3000, // 焦点检测延迟(ms)
 });
 ```
+### 4. 本地文件上传示例（客户端）
+
+演示如何使用 `sys_FileSystem.readFileFromFileSystem` 接口读取本地文件并上传。
+
+```typescript
+export async function uploadLocalFile() {
+    const fileUri = 'd:/path/to/your/file.txt'; // 填入本地文件的URL
+    const file = await eda.sys_FileSystem.readFileFromFileSystem(fileUri);//需开启外部交互
+}
+```
+
 
 ## 外部工具集成要求
 

@@ -1,14 +1,14 @@
 import * as extensionConfig from '../extension.json';
 
 /**
- * 通用仿真工具配置数据
- * 可根据实际需要配置第三方仿真工具的相关信息
+ * 通用外部工具配置数据
+ * 可根据实际需要配置第三方工具的相关信息
  */
-enum SimulationToolConfig {
-	// 示例配置，实际使用时可替换为具体的仿真工具信息
+enum ExternalToolConfig {
+	// 示例配置，实际使用时可替换为具体的工具信息
 	Default_Port = 8080,
 	Default_Host = 'localhost',
-	Default_Scheme = 'simulation-tool://',
+	Default_Scheme = 'external-tool://',
 }
 
 /**
@@ -21,7 +21,7 @@ export function about(): void {
 }
 
 /**
- * 导出ODB++文件到仿真工具
+ * 导出ODB++文件到外部工具
  * 这是主要的文件推送功能入口
  *
  * ODB++文件包含完整的PCB制造数据：
@@ -33,37 +33,86 @@ export function about(): void {
  */
 export function exportODBFile() {
 	console.log(eda.sys_I18n.text('Export ODB File', extensionConfig.uuid));
-	simulationFileManager.exportToSimulationTool('odb');
+	fileManager.exportToExternalTool('odb');
 }
 
 /**
- * 导出原理图网表文件到仿真工具
+ * 导出原理图网表文件到外部工具
  * 支持多种网表格式的导出
  *
  * 原理图网表文件包含电路连接信息：
  * - 元件列表和参数
  * - 网络连接关系
  * - 引脚对应关系
- * - 电气规则信息
  */
 export function exportNetlistFile() {
 	console.log(eda.sys_I18n.text('Export Netlist File', extensionConfig.uuid));
-	simulationFileManager.exportToSimulationTool('netlist');
+	fileManager.exportToExternalTool('netlist');
 }
 
 /**
- * 通用仿真文件管理器
- * 支持多种文件格式的导出和推送到第三方仿真工具
+ * 上传本地文件到外部工具
+ * 允许用户选择本地文件系统中的文件进行上传
+ *
+ * 使用场景：
+ * - 上传已有的仿真结果进行查看
+ * - 上传第三方工具生成的报告
+ * - 上传配置文件等
+ */
+/**
+ * 上传本地文件到外部工具
+ * 允许用户上传指定的本地文件
+ *
+ * 使用场景：
+ * - 上传已有的仿真结果进行查看
+ * - 上传第三方工具生成的报告
+ * - 上传配置文件等
+ * 
+ * @param uri - 本地文件的URI (例如: "d:/path/to/file.txt")
+ */
+export async function uploadLocalFile(uri: string) {
+	try {
+		console.log(eda.sys_I18n.text('Selected File', extensionConfig.uuid, undefined, uri));
+
+		// 1. 读取文件内容
+		// 注意：此 API 当前处于 BETA 预览状态，仅客户端有效，且需要启用扩展的外部交互权限
+		const file = await eda.sys_FileSystem.readFileFromFileSystem(uri);
+
+		if (!file) {
+			console.error(eda.sys_I18n.text('Read File Failed', extensionConfig.uuid));
+			return;
+		}
+
+		// 2. 构建FormData并上传
+		const formData = new FormData();
+		formData.append('file', file);
+		formData.append('type', 'local_file');
+		formData.append('timestamp', Date.now().toString());
+
+		// 3. 发送数据
+		fileManager.uploadFormData(formData);
+	} catch (error) {
+		console.error(eda.sys_I18n.text('Operation Failed', extensionConfig.uuid, undefined, error));
+		eda.sys_Dialog.showInformationMessage(
+			eda.sys_I18n.text('Read File Error', extensionConfig.uuid, undefined, error),
+			eda.sys_I18n.text('Error', extensionConfig.uuid),
+		);
+	}
+}
+
+/**
+ * 通用文件管理器
+ * 支持多种文件格式的导出和推送到第三方工具
  *
  * 主要功能：
- * 1. ODB++文件导出和推送 - 用于PCB制造和仿真分析
+ * 1. ODB++文件导出和推送 - 用于PCB制造和外部工具分析
  * 2. 原理图网表文件导出和推送 - 用于电路仿真和验证
- * 3. 通用的客户端检测机制 - 自动检测仿真工具运行状态
+ * 3. 通用的客户端检测机制 - 自动检测外部工具运行状态
  * 4. 可配置的文件传输方式 - 支持HTTP API和URL Scheme
  * 5. 智能重试和错误处理 - 确保文件传输的可靠性
  *
  */
-export class SimulationFileManager {
+export class FileManager {
 	// 定时器管理 - 用于控制各种异步操作的时序
 	private sendDataTimer = 'sendData'; // 数据发送定时器
 	private clientCheckTimer = 'clientCheckTimer'; // 客户端检测定时器
@@ -72,10 +121,10 @@ export class SimulationFileManager {
 
 	// 配置参数 - 可通过updateConfig方法动态调整
 	private config = {
-		port: SimulationToolConfig.Default_Port, // 仿真工具HTTP服务端口
-		host: SimulationToolConfig.Default_Host, // 仿真工具主机地址
-		scheme: SimulationToolConfig.Default_Scheme, // URL Scheme用于启动应用
-		clientPath: 'simulation-tool://launch', // 客户端启动路径
+		port: ExternalToolConfig.Default_Port, // 外部工具HTTP服务端口
+		host: ExternalToolConfig.Default_Host, // 外部工具主机地址
+		scheme: ExternalToolConfig.Default_Scheme, // URL Scheme用于启动应用
+		clientPath: 'external-tool://launch', // 客户端启动路径
 		checkInterval: 3000, // 检测间隔(ms) - 定期检查传输状态
 		timeout: 10000, // 超时时间(ms) - 防止长时间等待
 		focusDelay: 2000, // 焦点检测延迟(ms) - 等待用户操作完成
@@ -83,19 +132,52 @@ export class SimulationFileManager {
 	};
 
 	/**
-	 * 导出文件到仿真工具
+	 * 发送文件数据到外部工具 (公开方法)
+	 * 供外部直接调用上传 FormData 数据
+	 *
+	 * @param fileData - 要发送的文件数据
+	 */
+	public uploadFormData(fileData: FormData) {
+		this.clearAllTimers();
+		eda.sys_LoadingAndProgressBar.showProgressBar(1, 'uploadFile');
+		
+		// 检测客户端是否已运行
+		this.checkAndSend(fileData);
+	}
+
+	/**
+	 * 检测并发送
+	 */
+	private async checkAndSend(fileData: FormData) {
+		try {
+			const clientUrl = `http://${this.config.host}:${this.config.port}/api/test`;
+			const isClientRunning = await eda.sys_ClientUrl.request(clientUrl);
+			if (isClientRunning.ok) {
+				this.sendFileData(fileData);
+				return;
+			}
+		} catch (err) {
+			console.log(eda.sys_I18n.text('Client Not Running', extensionConfig.uuid));
+		}
+		
+		// 客户端未运行，尝试启动
+		this.handleClientStartup(fileData);
+	}
+
+	/**
+	 * 导出文件到外部工具
 	 * 这是核心的文件导出方法，支持多种文件类型
 	 *
 	 * 工作流程：
 	 * 1. 清理之前的定时器，避免冲突
 	 * 2. 显示进度条，提供用户反馈
 	 * 3. 获取指定类型的文件数据
-	 * 4. 检测仿真工具是否已运行
+	 * 4. 检测外部工具是否已运行
 	 * 5. 根据检测结果选择直接发送或启动客户端
 	 *
 	 * @param fileType - 文件类型：'odb' | 'netlist'
 	 */
-	public async exportToSimulationTool(fileType: 'odb' | 'netlist') {
+	public async exportToExternalTool(fileType: 'odb' | 'netlist') {
 		this.clearAllTimers();
 
 		// 显示进度条，让用户知道操作正在进行
@@ -103,7 +185,7 @@ export class SimulationFileManager {
 
 		// 获取文件数据
 		const fileData = await this.getFileData(fileType);
-		console.log(`SimulationTool--${fileType}File`, fileData);
+		console.log(`ExternalTool--${fileType}File`, fileData);
 
 		if (!fileData) {
 			const fileTypeName =
@@ -113,26 +195,13 @@ export class SimulationFileManager {
 			return;
 		}
 
-		// 检测客户端是否已运行
-		try {
-			const clientUrl = `http://${this.config.host}:${this.config.port}/api/test`;
-			const isClientRunning = await eda.sys_ClientUrl.request(clientUrl);
-			if (isClientRunning.ok) {
-				// 客户端已运行，直接发送数据
-				this.sendFileData(fileData);
-				return;
-			}
-		} catch (err) {
-			console.log(eda.sys_I18n.text('Client Not Running', extensionConfig.uuid));
-		}
-
-		// 客户端未运行，尝试启动并监听状态变化
-		this.handleClientStartup(fileData);
+		// 复用检测发送逻辑
+		this.checkAndSend(fileData);
 	}
 
 	/**
 	 * 更新配置
-	 * 允许动态调整仿真工具的连接参数
+	 * 允许动态调整外部工具的连接参数
 	 *
 	 * 使用示例：
 	 * ```
@@ -256,7 +325,7 @@ export class SimulationFileManager {
 	}
 
 	/**
-	 * 发送文件数据到仿真工具
+	 * 发送文件数据到外部工具
 	 * 支持重试机制和超时处理，确保传输的可靠性
 	 *
 	 * 重试策略：
@@ -346,7 +415,7 @@ export class SimulationFileManager {
 				return null;
 			}
 
-			console.log(`SimulationTool--${fileType}Data`, fileData);
+			console.log(`ExternalTool--${fileType}Data`, fileData);
 
 			// 可选：保存到本地文件系统用于测试和备份
 			// eda.sys_FileSystem.saveFile(fileData);
@@ -414,7 +483,7 @@ export class SimulationFileManager {
 
 	/**
 	 * 显示安装提示对话框
-	 * 当仿真工具未安装或启动失败时，引导用户进行相应操作
+	 * 当外部工具未安装或启动失败时，引导用户进行相应操作
 	 */
 	private showInstallDialog() {
 		const content = eda.sys_I18n.text('Warn Tip', extensionConfig.uuid) + '\n' + eda.sys_I18n.text('Warn Tip1', extensionConfig.uuid);
@@ -427,10 +496,10 @@ export class SimulationFileManager {
 			(mainButtonClicked) => {
 				if (mainButtonClicked) {
 					// 查看工具介绍或帮助文档
-					eda.sys_Window.open('https://example.com/simulation-tool-help');
+					eda.sys_Window.open('https://example.com/external-tool-help');
 				} else {
-					// 下载仿真工具
-					eda.sys_Window.open('https://example.com/simulation-tool-download');
+					// 下载外部工具
+					eda.sys_Window.open('https://example.com/external-tool-download');
 				}
 			},
 		);
@@ -459,7 +528,7 @@ export class SimulationFileManager {
 }
 
 /**
- * 创建全局仿真文件管理器实例
+ * 创建全局文件管理器实例
  * 这是扩展的主要工作对象，负责处理所有文件导出和传输操作
  */
-export const simulationFileManager = new SimulationFileManager();
+export const fileManager = new FileManager();
