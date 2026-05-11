@@ -1,5 +1,7 @@
 # 外部工具集成扩展示例 / External Tool Integration Extension Example
 
+[English](./README.en.md)
+
 这是一个基于嘉立创EDA的通用文件推送扩展示例，为开发者提供了一个可扩展的框架，用于将设计文件导出并推送到第三方工具进行使用或查看等。 / This is a generic file push extension example based on JLCPCB EDA (EasyEDA), providing developers with an extensible framework to export design files and push them to third-party tools for usage, viewing, etc.
 
 场景应用： / Use cases:  
