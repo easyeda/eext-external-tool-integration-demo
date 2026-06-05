@@ -34,8 +34,6 @@
 	"File Get Failed": "Failed to get ${1} file",
 	"ODB File": "ODB++",
 	"Netlist File": "Netlist",
-	"displayName": "External Tool Integration Demo",
-	"description": "A universal file push tool that supports ODB++ and netlist file export to third-party simulation software",
 	"外部工具集成演示示例": "External Tool Integration Demo",
 	"通用的文件推送工具，支持ODB++和网表文件导出到第三方仿真软件": "A universal file push tool that supports ODB++ and netlist file export to third-party simulation software",
 	"Simulation": "Simulation",
