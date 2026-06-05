@@ -41,5 +41,6 @@
 	"Client Check": "Checking client status...",
 	"File Get Failed": "Failed to get ${1} file",
 	"ODB File": "ODB++",
-	"Netlist File": "Netlist"
+	"Netlist File": "Netlist",
+	"Sample IFrame Page": "This is a sample IFrame page"
 }

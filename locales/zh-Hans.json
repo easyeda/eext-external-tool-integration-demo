@@ -41,5 +41,6 @@
 	"Client Check": "正在检测客户端状态...",
 	"File Get Failed": "未能获取到${1}文件",
 	"ODB File": "ODB++",
-	"Netlist File": "网表"
+	"Netlist File": "网表",
+	"Sample IFrame Page": "这是一个示例 IFrame 页面"
 }

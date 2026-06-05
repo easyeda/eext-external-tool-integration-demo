@@ -1,11 +1,19 @@
 <!doctype html>
-<html lang="zh-Hans">
+<html lang="en">
 	<head>
 		<title>Inner Frame</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	</head>
 	<body>
-		<p>这是一个示例 IFrame 页面</p>
+		<p id="samplePage"></p>
+		<script>
+			var edaObj = (typeof eda !== 'undefined') ? eda : (window.parent && window.parent.eda);
+			function t(tag) {
+				if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag);
+				return tag;
+			}
+			document.getElementById('samplePage').textContent = t('Sample IFrame Page');
+		</script>
 	</body>
 </html>
